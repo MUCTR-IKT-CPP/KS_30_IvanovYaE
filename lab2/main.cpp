@@ -7,7 +7,7 @@ using namespace std;
 /**
  * Выделяет память под квадратную матрицу n x n типа int.
  * @param n размер стороны матрицы
- * @return указатель на массив указателей (динамический двумерный массив)
+ * @return указатель на массив указателей
  */
 int** allocateMap(int n){
     int** p_map = new int*[n];
@@ -18,7 +18,7 @@ int** allocateMap(int n){
 }
 
 /**
- * Освобождает память, выделенную под матрицу n x n.
+ * Освобождает память матрицы n x n.
  * @param p_map указатель на матрицу
  * @param n размер стороны матрицы
  */
@@ -46,20 +46,7 @@ void fillRandom(int** p_map, int n){
 }
 
 /**
- * Заполняет матрицу нулями.
- * @param p_map указатель на матрицу
- * @param n размер стороны матрицы
- */
-void fillZeros(int** p_map, int n){
-    for(int i = 0; i < n; i++){
-        for(int j = 0; j < n; j++){
-            p_map[i][j] = 0;
-        }
-    }
-}
-
-/**
- * Выводит карту бухты в терминал.
+ * Выводит карту бухты.
  * @param p_map указатель на матрицу
  * @param n размер стороны матрицы
  */
@@ -77,83 +64,37 @@ void printMap(int** p_map, int n){
 }
 
 /**
- * Рекурсивный обход одного корабля (клетки, соседние по стороне).
- * Помечает посещённые клетки в p_visited и возвращает размер корабля.
- * @param p_map указатель на матрицу
- * @param p_visited матрица посещённых клеток
- * @param n размер стороны матрицы
- * @param row текущая строка
- * @param col текущий столбец
- * @return число клеток текущего корабля
- */
-int floodSize(int** p_map, int** p_visited, int n, int row, int col){
-    if(row < 0 || col < 0 || row >= n || col >= n){
-        return 0;
-    }
-    if(p_map[row][col] == 0 || p_visited[row][col] == 1){
-        return 0;
-    }
-
-    p_visited[row][col] = 1;
-    int size = 1;
-    size += floodSize(p_map, p_visited, n, row - 1, col);
-    size += floodSize(p_map, p_visited, n, row + 1, col);
-    size += floodSize(p_map, p_visited, n, row, col - 1);
-    size += floodSize(p_map, p_visited, n, row, col + 1);
-    return size;
-}
-
-/**
- * Рекурсивно обнуляет все клетки корабля, содержащего точку (row, col).
+ * Считает горизонтальные корабли и их размеры.
+ * Корабль — подряд идущие единицы в одной строке.
  * @param p_map указатель на матрицу
  * @param n размер стороны матрицы
- * @param row текущая строка
- * @param col текущий столбец
- */
-void floodClear(int** p_map, int n, int row, int col){
-    if(row < 0 || col < 0 || row >= n || col >= n){
-        return;
-    }
-    if(p_map[row][col] == 0){
-        return;
-    }
-
-    p_map[row][col] = 0;
-    floodClear(p_map, n, row - 1, col);
-    floodClear(p_map, n, row + 1, col);
-    floodClear(p_map, n, row, col - 1);
-    floodClear(p_map, n, row, col + 1);
-}
-
-/**
- * Подсчитывает количество кораблей и их размеры.
- * Кораблём считается связная группа единиц (соседство по вертикали и горизонтали).
- * @param p_map указатель на матрицу
- * @param n размер стороны матрицы
- * @param p_sizes указатель на массив размеров кораблей
- * @param p_ship_count указатель, по которому записывается число кораблей
+ * @param p_sizes массив для размеров кораблей
+ * @param p_ship_count указатель на количество кораблей
  */
 void countShipsAndSizes(int** p_map, int n, int* p_sizes, int* p_ship_count){
-    int** p_visited = allocateMap(n);
-    fillZeros(p_visited, n);
-
     *p_ship_count = 0;
     for(int i = 0; i < n; i++){
+        int length = 0;
         for(int j = 0; j < n; j++){
-            if(p_map[i][j] == 1 && p_visited[i][j] == 0){
-                int size = floodSize(p_map, p_visited, n, i, j);
-                p_sizes[*p_ship_count] = size;
-                (*p_ship_count)++;
+            if(p_map[i][j] == 1){
+                length++;
+            } else {
+                if(length > 0){
+                    p_sizes[*p_ship_count] = length;
+                    (*p_ship_count)++;
+                    length = 0;
+                }
             }
         }
+        if(length > 0){
+            p_sizes[*p_ship_count] = length;
+            (*p_ship_count)++;
+        }
     }
-
-    freeMap(p_visited, n);
 }
 
 /**
- * Отражает карту бухты зеркально относительно вертикальной оси
- * (левая и правая стороны меняются местами).
+ * Отражает карту зеркально: в каждой строке меняет лево и право.
  * @param p_map указатель на матрицу
  * @param n размер стороны матрицы
  */
@@ -168,11 +109,9 @@ void mirrorMap(int** p_map, int n){
 }
 
 /**
- * Удаляет корабль по указанным координатам.
- * Параметры n, row и col передаются указателями.
- * Если в клетке нет корабля, карта не изменяется.
+ * Удаляет горизонтальный корабль в строке *p_row, который содержит столбец *p_col.
  * @param p_map указатель на матрицу
- * @param p_n указатель на размер стороны матрицы
+ * @param p_n указатель на размер карты
  * @param p_row указатель на номер строки
  * @param p_col указатель на номер столбца
  */
@@ -189,29 +128,42 @@ void deleteShip(int** p_map, int* p_n, int* p_row, int* p_col){
         return;
     }
 
-    floodClear(p_map, *p_n, *p_row, *p_col);
+    int row = *p_row;
+    int col = *p_col;
+    int n = *p_n;
+
+    int left = col;
+    while(left > 0 && p_map[row][left - 1] == 1){
+        left--;
+    }
+    int right = col;
+    while(right < n - 1 && p_map[row][right + 1] == 1){
+        right++;
+    }
+
+    for(int j = left; j <= right; j++){
+        p_map[row][j] = 0;
+    }
     cout << "Корабль удалён." << endl;
 }
 
 /**
- * Подсчитывает количество кораблей. Матрица передаётся через void*.
- * @param p_data указатель на матрицу int**, приведённый к void*
+ * Считает корабли. Карта передаётся как void*.
+ * @param p_data указатель на матрицу int**
  * @param n размер стороны матрицы
- * @return количество кораблей на карте
+ * @return количество кораблей
  */
 int countShipsVoid(void* p_data, int n){
     int** p_map = (int**)p_data;
     int* p_sizes = new int[n * n];
     int ship_count = 0;
-
     countShipsAndSizes(p_map, n, p_sizes, &ship_count);
-
     delete[] p_sizes;
     return ship_count;
 }
 
 /**
- * Печатает меню доступных операций.
+ * Печатает меню.
  */
 void printMenu(){
     cout << endl;
@@ -230,7 +182,6 @@ int main(){
     int n = 0;
     cout << "Введите N (размер карты N x N): ";
     cin >> n;
-
     if(n <= 0){
         cout << "Размер карты должен быть положительным числом." << endl;
         return 1;
@@ -253,7 +204,6 @@ int main(){
             int* p_sizes = new int[n * n];
             int ship_count = 0;
             countShipsAndSizes(p_map, n, p_sizes, &ship_count);
-
             cout << "Количество кораблей = " << ship_count << endl;
             if(ship_count == 0){
                 cout << "Размеры: нет кораблей" << endl;
