@@ -3,16 +3,19 @@
 #include <vector>
 #include <cstdlib>
 #include <ctime>
+#include <algorithm>
+#include <sstream>
+#include <limits>
 
 using namespace std;
 
-struct SocialMediaProfile {
-    string username;
-    int age;
-    int number_of_friends;
-    int registration_year;
-    bool is_premium;
-    int last_login;
+struct SocialMediaProfile{
+    string username = "";
+    int age = 0;
+    int number_of_friends = 0;
+    int registration_year = 0;
+    bool is_premium = false;
+    int last_login = 0;
 };
 
 int const MIN_AGE = 14;
@@ -24,6 +27,7 @@ int const MAX_YEAR = 2026;
 int const MIN_LAST_LOGIN = 0;
 int const MAX_LAST_LOGIN = 400;
 int const NOTIFY_DAYS = 30;
+int const MAX_PROFILES = 100000;
 
 /**
  * Приводит латинскую букву к нижнему регистру.
@@ -31,8 +35,8 @@ int const NOTIFY_DAYS = 30;
  * @param symbol исходный символ.
  * @return символ в нижнем регистре, если это латиница, иначе исходный символ.
  */
-char toLowerChar(char symbol) {
-    if(symbol >= 'A' && symbol <= 'Z') {
+char toLowerChar(char symbol){
+    if(symbol >= 'A' && symbol <= 'Z'){
         return (char)(symbol - 'A' + 'a');
     }
     return symbol;
@@ -45,25 +49,25 @@ char toLowerChar(char symbol) {
  * @param b вторая строка.
  * @return -1 если a < b, 1 если a > b, 0 если строки равны.
  */
-int compareIgnoreCase(string const& a, string const& b) {
-    int i = 0;
-    int size_a = (int)a.size();
-    int size_b = (int)b.size();
-    while(i < size_a && i < size_b) {
-        char ca = toLowerChar(a[i]);
-        char cb = toLowerChar(b[i]);
-        if(ca < cb) {
+int compareIgnoreCase(string const& a, string const& b){
+    size_t i = 0;
+    size_t const SIZE_A = a.size();
+    size_t const SIZE_B = b.size();
+    while(i < SIZE_A && i < SIZE_B){
+        char const CA = toLowerChar(a[i]);
+        char const CB = toLowerChar(b[i]);
+        if(CA < CB){
             return -1;
         }
-        if(ca > cb) {
+        if(CA > CB){
             return 1;
         }
         i++;
     }
-    if(size_a < size_b) {
+    if(SIZE_A < SIZE_B){
         return -1;
     }
-    if(size_a > size_b) {
+    if(SIZE_A > SIZE_B){
         return 1;
     }
     return 0;
@@ -75,15 +79,15 @@ int compareIgnoreCase(string const& a, string const& b) {
  * @param profile профиль для вывода.
  * @return ничего не возвращает.
  */
-void printProfile(SocialMediaProfile const& profile) {
+void printProfile(SocialMediaProfile const& profile){
     cout << profile.username
          << " | возраст: " << profile.age
          << " | друзья: " << profile.number_of_friends
          << " | год: " << profile.registration_year
          << " | премиум: ";
-    if(profile.is_premium) {
+    if(profile.is_premium){
         cout << "да";
-    } else {
+    } else{
         cout << "нет";
     }
     cout << " | дней с входа: " << profile.last_login << endl;
@@ -96,30 +100,30 @@ void printProfile(SocialMediaProfile const& profile) {
  * @param n количество элементов.
  * @return ничего не возвращает.
  */
-void printProfiles(SocialMediaProfile const* p_profiles, int n) {
-    if(n == 0) {
+void printProfiles(SocialMediaProfile const* p_profiles, int n){
+    if(n == 0){
         cout << "Список пуст." << endl;
         return;
     }
-    for(int i = 0; i < n; i++) {
+    for(int i = 0; i < n; i++){
         cout << i << ". ";
         printProfile(p_profiles[i]);
     }
 }
 
 /**
- * Генерирует уникальное имя пользователя.
+ * Генерирует случайное имя пользователя с уникальным числовым суффиксом.
  *
  * @param index порядковый номер профиля.
  * @return строка с именем.
  */
-string makeUsername(int index) {
-    char const* bases[10] = {
+string makeUsername(int index){
+    char const* const p_bases[10] = {
         "Alice", "bob", "Charlie", "diana",
         "Eve", "frank", "Grace", "henry",
         "Ivy", "jack"
     };
-    string name = bases[index % 10];
+    string name = p_bases[rand() % 10];
     name += "_";
     name += to_string(index);
     return name;
@@ -132,8 +136,8 @@ string makeUsername(int index) {
  * @param n количество элементов.
  * @return ничего не возвращает.
  */
-void fillRandomProfiles(SocialMediaProfile* p_profiles, int n) {
-    for(int i = 0; i < n; i++) {
+void fillRandomProfiles(SocialMediaProfile* p_profiles, int n){
+    for(int i = 0; i < n; i++){
         p_profiles[i].username = makeUsername(i);
         p_profiles[i].age = MIN_AGE + rand() % (MAX_AGE - MIN_AGE + 1);
         p_profiles[i].number_of_friends = MIN_FRIENDS + rand() % (MAX_FRIENDS - MIN_FRIENDS + 1);
@@ -157,10 +161,10 @@ int findInactiveUsers(
     int n,
     int x,
     SocialMediaProfile* p_result
-) {
+){
     int count = 0;
-    for(int i = 0; i < n; i++) {
-        if(p_profiles[i].last_login > x) {
+    for(int i = 0; i < n; i++){
+        if(p_profiles[i].last_login > x){
             p_result[count] = p_profiles[i];
             count++;
         }
@@ -184,21 +188,21 @@ void analyzeAudience(
     double* p_avg_age,
     double* p_avg_friends,
     int* p_premium_count
-) {
+){
     *p_avg_age = 0;
     *p_avg_friends = 0;
     *p_premium_count = 0;
-    if(n <= 0) {
+    if(n <= 0){
         return;
     }
 
-    long sum_age = 0;
-    long sum_friends = 0;
+    long long sum_age = 0;
+    long long sum_friends = 0;
     int premium_count = 0;
-    for(int i = 0; i < n; i++) {
+    for(int i = 0; i < n; i++){
         sum_age += p_profiles[i].age;
         sum_friends += p_profiles[i].number_of_friends;
-        if(p_profiles[i].is_premium) {
+        if(p_profiles[i].is_premium){
             premium_count++;
         }
     }
@@ -215,16 +219,13 @@ void analyzeAudience(
  * @param n количество элементов.
  * @return ничего не возвращает.
  */
-void sortByFriends(SocialMediaProfile* p_profiles, int n) {
-    for(int i = 0; i < n - 1; i++) {
-        for(int j = 0; j < n - 1 - i; j++) {
-            if(p_profiles[j].number_of_friends < p_profiles[j + 1].number_of_friends) {
-                SocialMediaProfile temp = p_profiles[j];
-                p_profiles[j] = p_profiles[j + 1];
-                p_profiles[j + 1] = temp;
-            }
-        }
+void sortByFriends(SocialMediaProfile* p_profiles, int n){
+    if(n < 2){
+        return;
     }
+    sort(p_profiles, p_profiles + n, [](SocialMediaProfile const& a, SocialMediaProfile const& b){
+        return a.number_of_friends > b.number_of_friends;
+    });
 }
 
 /**
@@ -242,10 +243,10 @@ int findOldTimers(
     int n,
     int year,
     SocialMediaProfile* p_result
-) {
+){
     int count = 0;
-    for(int i = 0; i < n; i++) {
-        if(p_profiles[i].registration_year <= year) {
+    for(int i = 0; i < n; i++){
+        if(p_profiles[i].registration_year <= year){
             p_result[count] = p_profiles[i];
             count++;
         }
@@ -261,16 +262,13 @@ int findOldTimers(
  * @param n количество элементов.
  * @return ничего не возвращает.
  */
-void sortByUsername(SocialMediaProfile* p_profiles, int n) {
-    for(int i = 0; i < n - 1; i++) {
-        for(int j = 0; j < n - 1 - i; j++) {
-            if(compareIgnoreCase(p_profiles[j].username, p_profiles[j + 1].username) > 0) {
-                SocialMediaProfile temp = p_profiles[j];
-                p_profiles[j] = p_profiles[j + 1];
-                p_profiles[j + 1] = temp;
-            }
-        }
+void sortByUsername(SocialMediaProfile* p_profiles, int n){
+    if(n < 2){
+        return;
     }
+    sort(p_profiles, p_profiles + n, [](SocialMediaProfile const& a, SocialMediaProfile const& b){
+        return compareIgnoreCase(a.username, b.username) < 0;
+    });
 }
 
 /**
@@ -281,18 +279,18 @@ void sortByUsername(SocialMediaProfile* p_profiles, int n) {
  * @param n количество элементов.
  * @return число пользователей, которым «отправлено» уведомление.
  */
-int sendNotifications(SocialMediaProfile const* p_profiles, int n) {
+int sendNotifications(SocialMediaProfile const* p_profiles, int n){
     int count = 0;
     cout << "Уведомления пользователям без входа более "
          << NOTIFY_DAYS << " дней:" << endl;
-    for(int i = 0; i < n; i++) {
-        if(p_profiles[i].last_login > NOTIFY_DAYS) {
+    for(int i = 0; i < n; i++){
+        if(p_profiles[i].last_login > NOTIFY_DAYS){
             cout << "Отправлено @" << p_profiles[i].username
                  << " (не был(а) " << p_profiles[i].last_login << " дн.)" << endl;
             count++;
         }
     }
-    if(count == 0) {
+    if(count == 0){
         cout << "Подходящих пользователей нет." << endl;
     }
     return count;
@@ -303,7 +301,7 @@ int sendNotifications(SocialMediaProfile const* p_profiles, int n) {
  *
  * @return ничего не возвращает.
  */
-void printMenu() {
+void printMenu(){
     cout << endl;
     cout << "Выберите действие:" << endl;
     cout << "1. Показать всех пользователей" << endl;
@@ -313,67 +311,98 @@ void printMenu() {
     cout << "5. Сортировка по имени (без учёта регистра)" << endl;
     cout << "6. Отправка уведомлений (не заходили более 30 дней)" << endl;
     cout << "0. Выход" << endl;
-    cout << "Ваш выбор: ";
 }
 
-int main() {
+/**
+ * Читает одну строку с целым числом и проверяет допустимый диапазон.
+ * Повторяет запрос при ошибке; при завершении ввода возвращает false.
+ *
+ * @param prompt текст запроса.
+ * @param min_value минимальное допустимое число.
+ * @param max_value максимальное допустимое число.
+ * @param p_value указатель для результата.
+ * @return true при успешном вводе, false при EOF или ошибке потока.
+ */
+bool readInteger(string const& prompt, int min_value, int max_value, int* p_value){
+    string line = "";
+    while(true){
+        cout << prompt;
+        if(!getline(cin, line)){
+            return false;
+        }
+        istringstream input(line);
+        int value = 0;
+        if(input >> value){
+            input >> ws;
+            if(input.eof() && value >= min_value && value <= max_value){
+                *p_value = value;
+                return true;
+            }
+        }
+        cout << "Введите целое число от " << min_value
+             << " до " << max_value << "." << endl;
+    }
+}
+
+int main(){
     srand((unsigned int)time(0));
 
     int n = 0;
-    cout << "Введите N (число пользователей): ";
-    cin >> n;
-    if(n <= 0) {
-        cout << "N должно быть положительным." << endl;
-        return 1;
+    if(!readInteger("Введите N (число пользователей): ", 0, MAX_PROFILES, &n)){
+        return 0;
     }
 
     vector<SocialMediaProfile> profiles(n);
-    fillRandomProfiles(&profiles[0], n);
+    fillRandomProfiles(profiles.data(), n);
 
     cout << endl << "Сгенерировано пользователей: " << n << endl;
-    printProfiles(&profiles[0], n);
+    printProfiles(profiles.data(), n);
 
     int choice = -1;
-    while(true) {
+    while(true){
         printMenu();
-        cin >> choice;
-
-        if(choice == 0) {
+        if(!readInteger("Ваш выбор: ", 0, 6, &choice)){
             break;
-        } else if(choice == 1) {
-            printProfiles(&profiles[0], n);
-        } else if(choice == 2) {
+        }
+
+        if(choice == 0){
+            break;
+        } else if(choice == 1){
+            printProfiles(profiles.data(), n);
+        } else if(choice == 2){
             int x = 0;
-            cout << "Введите X (дней): ";
-            cin >> x;
+            if(!readInteger("Введите X (дней): ", 0, numeric_limits<int>::max(), &x)){
+                break;
+            }
             vector<SocialMediaProfile> found(n);
-            int count = findInactiveUsers(&profiles[0], n, x, &found[0]);
-            cout << "Найдено пользователей: " << count << endl;
-            printProfiles(&found[0], count);
-        } else if(choice == 3) {
+            int const COUNT = findInactiveUsers(profiles.data(), n, x, found.data());
+            cout << "Найдено пользователей: " << COUNT << endl;
+            printProfiles(found.data(), COUNT);
+        } else if(choice == 3){
             double avg_age = 0;
             double avg_friends = 0;
             int premium_count = 0;
-            analyzeAudience(&profiles[0], n, &avg_age, &avg_friends, &premium_count);
+            analyzeAudience(profiles.data(), n, &avg_age, &avg_friends, &premium_count);
             cout << "Средний возраст: " << avg_age << endl;
             cout << "Среднее число друзей: " << avg_friends << endl;
             cout << "Премиум-пользователей: " << premium_count << endl;
-        } else if(choice == 4) {
+        } else if(choice == 4){
             int year = 0;
-            cout << "Введите год (зарегистрированы не позднее): ";
-            cin >> year;
+            if(!readInteger("Введите год (зарегистрированы не позднее): ", 1, numeric_limits<int>::max(), &year)){
+                break;
+            }
             vector<SocialMediaProfile> old_timers(n);
-            int count = findOldTimers(&profiles[0], n, year, &old_timers[0]);
-            cout << "Найдено старожилов: " << count << endl;
-            printProfiles(&old_timers[0], count);
-        } else if(choice == 5) {
-            sortByUsername(&profiles[0], n);
+            int const COUNT = findOldTimers(profiles.data(), n, year, old_timers.data());
+            cout << "Найдено старожилов: " << COUNT << endl;
+            printProfiles(old_timers.data(), COUNT);
+        } else if(choice == 5){
+            sortByUsername(profiles.data(), n);
             cout << "Массив отсортирован по имени." << endl;
-            printProfiles(&profiles[0], n);
-        } else if(choice == 6) {
-            int sent = sendNotifications(&profiles[0], n);
-            cout << "Всего уведомлений: " << sent << endl;
-        } else {
+            printProfiles(profiles.data(), n);
+        } else if(choice == 6){
+            int const SENT = sendNotifications(profiles.data(), n);
+            cout << "Всего уведомлений: " << SENT << endl;
+        } else{
             cout << "Неизвестный пункт меню." << endl;
         }
     }
