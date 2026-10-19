@@ -46,24 +46,18 @@ char toLowerChar(char symbol) {
  * @return -1 если a < b, 1 если a > b, 0 если строки равны.
  */
 int compareIgnoreCase(string const& a, string const& b) {
-    int i = 0;
-    int size_a = (int)a.size();
-    int size_b = (int)b.size();
-    while(i < size_a && i < size_b) {
-        char ca = toLowerChar(a[i]);
-        char cb = toLowerChar(b[i]);
-        if(ca < cb) {
-            return -1;
-        }
-        if(ca > cb) {
-            return 1;
-        }
-        i++;
+    string name_a = a;
+    string name_b = b;
+    for(int i = 0; i < (int)name_a.size(); i++) {
+        name_a[i] = toLowerChar(name_a[i]);
     }
-    if(size_a < size_b) {
+    for(int i = 0; i < (int)name_b.size(); i++) {
+        name_b[i] = toLowerChar(name_b[i]);
+    }
+    if(name_a < name_b) {
         return -1;
     }
-    if(size_a > size_b) {
+    if(name_a > name_b) {
         return 1;
     }
     return 0;
@@ -119,10 +113,7 @@ string makeUsername(int index) {
         "Eve", "frank", "Grace", "henry",
         "Ivy", "jack"
     };
-    string name = bases[index % 10];
-    name += "_";
-    name += to_string(index);
-    return name;
+    return string(bases[index % 10]) + "_" + to_string(index);
 }
 
 /**
@@ -194,18 +185,16 @@ void analyzeAudience(
 
     long sum_age = 0;
     long sum_friends = 0;
-    int premium_count = 0;
     for(int i = 0; i < n; i++) {
         sum_age += p_profiles[i].age;
         sum_friends += p_profiles[i].number_of_friends;
         if(p_profiles[i].is_premium) {
-            premium_count++;
+            (*p_premium_count)++;
         }
     }
 
     *p_avg_age = (double)sum_age / n;
     *p_avg_friends = (double)sum_friends / n;
-    *p_premium_count = premium_count;
 }
 
 /**
@@ -227,10 +216,6 @@ void sortByFriends(SocialMediaProfile* p_profiles, int n) {
     }
 }
 
-
-void someFunc(int* p2, int const n){
-    while(n = 1)
-}
 /**
  * Формирует массив старожилов: год регистрации не больше заданного.
  * Затем сортирует результат по числу друзей.
@@ -325,13 +310,13 @@ int main() {
 
     int n = 0;
     cout << "Введите N (число пользователей): ";
-    cin >> n;
-    if(n <= 0) {
+    if(!(cin >> n) || n <= 0) {
         cout << "N должно быть положительным." << endl;
         return 1;
     }
 
     vector<SocialMediaProfile> profiles(n);
+    vector<SocialMediaProfile> found(n);
     fillRandomProfiles(&profiles[0], n);
 
     cout << endl << "Сгенерировано пользователей: " << n << endl;
@@ -340,17 +325,17 @@ int main() {
     int choice = -1;
     while(true) {
         printMenu();
-        cin >> choice;
-
-        if(choice == 0) {
+        if(!(cin >> choice) || choice == 0) {
             break;
         } else if(choice == 1) {
             printProfiles(&profiles[0], n);
         } else if(choice == 2) {
             int x = 0;
             cout << "Введите X (дней): ";
-            cin >> x;
-            vector<SocialMediaProfile> found(n);
+            if(!(cin >> x)) {
+                cout << "Нужно ввести целое число." << endl;
+                return 1;
+            }
             int count = findInactiveUsers(&profiles[0], n, x, &found[0]);
             cout << "Найдено пользователей: " << count << endl;
             printProfiles(&found[0], count);
@@ -365,11 +350,13 @@ int main() {
         } else if(choice == 4) {
             int year = 0;
             cout << "Введите год (зарегистрированы не позднее): ";
-            cin >> year;
-            vector<SocialMediaProfile> old_timers(n);
-            int count = findOldTimers(&profiles[0], n, year, &old_timers[0]);
+            if(!(cin >> year)) {
+                cout << "Нужно ввести целое число." << endl;
+                return 1;
+            }
+            int count = findOldTimers(&profiles[0], n, year, &found[0]);
             cout << "Найдено старожилов: " << count << endl;
-            printProfiles(&old_timers[0], count);
+            printProfiles(&found[0], count);
         } else if(choice == 5) {
             sortByUsername(&profiles[0], n);
             cout << "Массив отсортирован по имени." << endl;
